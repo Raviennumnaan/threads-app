@@ -1,6 +1,6 @@
 "use server";
 
-import { FilterQuery, SortOrder } from "mongoose";
+import { FilterQuery, SortOrder, Types } from "mongoose";
 
 import Community from "../models/community.model";
 import Thread from "../models/thread.model";
@@ -289,12 +289,16 @@ export async function deleteCommunity(communityId: string) {
     const communityUsers = await User.find({ communities: communityId });
 
     // Remove the community from the 'communities' array for each user
-    const updateUserPromises = communityUsers.map((user) => {
-      user.communities.pull(communityId);
-      return user.save();
-    });
+    communityUsers.map(
+      async (user) =>
+        await User.findByIdAndUpdate(user._id, {
+          communities: { $pull: communityId },
+        })
+      // return user.save();
+      // user.communities.pull(communityId);
+    );
 
-    await Promise.all(updateUserPromises);
+    // await Promise.all(updateUserPromises);
 
     return deletedCommunity;
   } catch (error) {

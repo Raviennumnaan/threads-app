@@ -29,14 +29,14 @@ export default async function ThreadDetailPage({
         <ThreadCard
           isComment={false}
           thread={thread}
-          currentUserId={userInfo._id}
+          currentUserId={userInfo._id.toString()}
         />
       </div>
       <div className="mt-7 ">
         <Comment
           threadId={thread.id}
           currentUserImage={userInfo.image || user.imageUrl}
-          currentUserId={userInfo._id}
+          currentUserId={userInfo._id.toString()}
         />
       </div>
 
@@ -44,8 +44,8 @@ export default async function ThreadDetailPage({
         {thread.children.map((comment) => (
           <ThreadCard
             isComment
-            currentUserId={userInfo._id || ""}
-            key={comment._id}
+            currentUserId={userInfo._id.toString() || ""}
+            key={comment._id.toString()}
             thread={comment}
           />
         ))}

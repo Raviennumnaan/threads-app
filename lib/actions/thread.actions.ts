@@ -2,9 +2,8 @@
 
 import { connectToDB } from "@/lib/mongoose";
 import Thread, { ThreadDocument } from "@/lib/models/thread.model";
-import User, { UserDocument } from "@/lib/models/user.model";
+import User from "@/lib/models/user.model";
 import { revalidatePath } from "next/cache";
-import { Types } from "mongoose";
 
 type createThreadProps = {
   text: string;
@@ -40,7 +39,7 @@ export const createThread = async ({
 export const fetchThreads = async (
   pageNumber: number = 1,
   pageSize: number = 20
-) => {
+): Promise<{ threads: ThreadDocument[]; isNext: boolean }> => {
   await connectToDB();
 
   const skipAmount = (pageNumber - 1) * pageSize;
@@ -51,8 +50,8 @@ export const fetchThreads = async (
     .sort({ createdAt: "desc" })
     .skip(skipAmount)
     .limit(pageSize)
-    .populate<{ author: UserDocument }>({ path: "author", model: User })
-    .populate<{ children: ThreadDocument[] }>({
+    .populate({ path: "author", model: User })
+    .populate({
       path: "children",
       populate: {
         path: "author",
@@ -70,18 +69,18 @@ export const fetchThreads = async (
   return { threads, isNext };
 };
 
-export const getThreadById = async (id: string) => {
+export const getThreadById = async (
+  id: string
+): Promise<ThreadDocument | null> => {
   try {
     await connectToDB();
     const thread = await Thread.findById(id)
-      .populate<{ author: UserDocument }>({
+      .populate({
         path: "author",
         model: User,
         select: "_id id name image",
       })
-      .populate<{
-        children: ThreadDocument[];
-      }>({
+      .populate({
         path: "children",
         model: Thread,
         populate: {

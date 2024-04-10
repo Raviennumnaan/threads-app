@@ -1,11 +1,10 @@
-import { ThreadDocumentPopulated } from "@/lib/models/thread.model";
-
+import { ThreadDocument } from "@/lib/models/thread.model";
 import Image from "next/image";
 import Link from "next/link";
 
 type ThreadCardProps = {
   currentUserId?: string;
-  thread: ThreadDocumentPopulated;
+  thread: ThreadDocument;
   isComment: boolean;
 };
 
@@ -57,7 +56,7 @@ export default function ThreadCard({
                   height={24}
                   className="cursor-pointer object-contain"
                 />
-                <Link href={`/thread/${thread.id}`}>
+                <Link href={`/thread/${thread._id}`}>
                   <Image
                     src="/assets/reply.svg"
                     alt="reply"
@@ -83,7 +82,7 @@ export default function ThreadCard({
               </div>
 
               {isComment && thread.children.length > 0 && (
-                <Link href={`/thread/${thread.id}`}>
+                <Link href={`/thread/${thread._id}`}>
                   <p className="mt-1 text-subtle-medium text-gray-1">
                     {thread.children.length} replies
                   </p>

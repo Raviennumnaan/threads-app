@@ -59,7 +59,9 @@ export const uploadImage = async (content: string) => {
   return uploadResponse;
 };
 
-export const fetchUser = async (userId: string) => {
+export const fetchUser = async (
+  userId: string
+): Promise<UserDocument | null> => {
   try {
     connectToDB();
 
@@ -71,12 +73,12 @@ export const fetchUser = async (userId: string) => {
   }
 };
 
-export const getUserThreads = async (userId: string) => {
+export const getUserThreads = async (
+  userId: string
+): Promise<UserDocument | null> => {
   try {
     // TODO: Populate community
-    const threads = await User.findOne({ id: userId }).populate<{
-      threads: ThreadDocument[];
-    }>({
+    const threads = await User.findOne({ id: userId }).populate({
       path: "threads",
       model: Thread,
       populate: [
@@ -110,7 +112,7 @@ export const getUsers = async ({
   sortBy = "desc",
   userId,
   searchString,
-}: getUserType) => {
+}: getUserType): Promise<{ users: UserDocument[]; isNext: boolean }> => {
   try {
     await connectToDB();
     const skipAmount = (pageNumber - 1) * pageSize;
@@ -141,7 +143,9 @@ export const getUsers = async ({
   }
 };
 
-export const getUserActivity = async (userId: string) => {
+export const getUserActivity = async (
+  userId: string
+): Promise<ThreadDocument[]> => {
   try {
     await connectToDB();
     const userThreads = await Thread.find({ author: userId });
@@ -152,7 +156,7 @@ export const getUserActivity = async (userId: string) => {
     const replies = await Thread.find({
       _id: { $in: childThreadIds },
       author: { $ne: userId },
-    }).populate<{ author: UserDocument }>({
+    }).populate({
       path: "author",
       model: User,
       select: "name image _id id",

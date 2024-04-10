@@ -11,7 +11,7 @@ export default async function ActivityPage() {
   if (!userInfo?.onboarded) redirect("/onboarding");
 
   // Get activity
-  const activity = await getUserActivity(userInfo._id);
+  const activity = await getUserActivity(userInfo._id.toString());
 
   return (
     <section>
@@ -20,7 +20,10 @@ export default async function ActivityPage() {
         {activity.length > 0 ? (
           <>
             {activity.map((thread) => (
-              <Link href={`/thread/${thread.parentId}`} key={thread._id}>
+              <Link
+                href={`/thread/${thread.parentId}`}
+                key={thread._id.toString()}
+              >
                 <article className="activity-card">
                   <Image
                     src={thread.author.image || ""}

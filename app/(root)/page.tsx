@@ -16,7 +16,7 @@ export default async function HomePage() {
           <>
             {threads.map((thread) => (
               <ThreadCard
-                key={thread._id}
+                key={thread._id.toString()}
                 currentUserId={user?.id}
                 thread={thread}
                 isComment={false}

@@ -1,27 +1,19 @@
-import mongoose, { Document, Schema, Model, Types } from "mongoose";
+import mongoose, { Schema, Model, Types, PopulatedDoc } from "mongoose";
 import { UserDocument } from "@/lib/models/user.model";
+import { CommunityDocument } from "@/lib/models/community.model";
 
-export interface ThreadDocument extends Document {
+export interface ThreadDocument {
+  _id: Types.ObjectId;
+  id: string;
   text: string;
-  author: Types.ObjectId;
-  community?: Types.ObjectId;
+  author: NonNullable<PopulatedDoc<Types.ObjectId & UserDocument>>;
+  community?: PopulatedDoc<Types.ObjectId & CommunityDocument>;
   createdAt: Date;
   parentId?: string;
-  children: Types.ObjectId[];
+  children: NonNullable<PopulatedDoc<Types.ObjectId & ThreadDocument>>[];
 }
 
-export interface ThreadDocumentPopulated extends Document {
-  text: string;
-  author: UserDocument;
-  community?: Types.ObjectId;
-  createdAt: Date;
-  parentId?: string;
-  children: ThreadDocument[];
-}
-
-interface threadModel extends Model<ThreadDocument> {}
-
-const threadSchema = new Schema<ThreadDocument, threadModel>(
+const ThreadSchema = new Schema<ThreadDocument>(
   {
     text: { type: String, required: true },
     author: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -35,7 +27,10 @@ const threadSchema = new Schema<ThreadDocument, threadModel>(
   { timestamps: true }
 );
 
-const Thread: threadModel =
+export interface ThreadModel extends Model<ThreadDocument> {}
+
+const ThreadModel: ThreadModel =
   mongoose.models.Thread ||
-  mongoose.model<ThreadDocument, threadModel>("Thread", threadSchema);
-export default Thread;
+  mongoose.model<ThreadDocument, ThreadModel>("Thread", ThreadSchema);
+
+export default ThreadModel;

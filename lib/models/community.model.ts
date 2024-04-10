@@ -1,27 +1,23 @@
-import mongoose, { Document, Schema, Model, Types } from "mongoose";
+import mongoose, {
+  Document,
+  Schema,
+  Model,
+  Types,
+  PopulatedDoc,
+} from "mongoose";
 import { ThreadDocument } from "@/lib/models/thread.model";
 import { UserDocument } from "@/lib/models/user.model";
 
-export interface CommunityDocument extends Document {
+export interface CommunityDocument {
+  _id: Types.ObjectId & CommunityDocument;
   id: string;
   username: string;
   name: string;
   image?: string;
   bio?: string;
-  createdBy: Types.ObjectId;
-  threads: Types.ObjectId[];
-  members: Types.ObjectId[];
-}
-
-export interface CommunityDocumentPopulated extends Document {
-  id: string;
-  username: string;
-  name: string;
-  image?: string;
-  bio?: string;
-  createdBy: UserDocument;
-  threads: ThreadDocument[];
-  members: UserDocument[];
+  createdBy: NonNullable<PopulatedDoc<Types.ObjectId & UserDocument>>;
+  threads: NonNullable<PopulatedDoc<Types.ObjectId & ThreadDocument>>[];
+  members: NonNullable<PopulatedDoc<Types.ObjectId & UserDocument>>[];
 }
 
 interface CommunityModel extends Model<CommunityDocument> {}
