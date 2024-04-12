@@ -1,11 +1,12 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { v2 as cloudinary } from "cloudinary";
+import { FilterQuery, SortOrder } from "mongoose";
 
 import { connectToDB } from "@/lib/mongoose";
 import User, { UserDocument } from "@/lib/models/user.model";
 import Thread, { ThreadDocument } from "@/lib/models/thread.model";
-import { FilterQuery, SortOrder, Types } from "mongoose";
+import Community from "@/lib/models/community.model";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -65,8 +66,10 @@ export const fetchUser = async (
   try {
     connectToDB();
 
-    return await User.findOne({ id: userId });
-    // .populate({path: "communities", model: Community})
+    return await User.findOne({ id: userId }).populate({
+      path: "communities",
+      model: Community,
+    });
   } catch (error) {
     console.log(error instanceof Error && error.message);
     throw new Error("Failed to fetch user");
@@ -77,7 +80,6 @@ export const getUserThreads = async (
   userId: string
 ): Promise<UserDocument | null> => {
   try {
-    // TODO: Populate community
     const threads = await User.findOne({ id: userId }).populate({
       path: "threads",
       model: Thread,
@@ -95,6 +97,11 @@ export const getUserThreads = async (
           path: "author",
           model: User,
           select: "_id id name image",
+        },
+        {
+          path: "community",
+          model: Community,
+          select: "name id image _id",
         },
       ],
     });

@@ -1,9 +1,11 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { connectToDB } from "@/lib/mongoose";
 import Thread, { ThreadDocument } from "@/lib/models/thread.model";
 import User from "@/lib/models/user.model";
-import { revalidatePath } from "next/cache";
+import Community, { CommunityDocument } from "@/lib/models/community.model";
+import { threadId } from "worker_threads";
 
 type createThreadProps = {
   text: string;
@@ -15,20 +17,28 @@ type createThreadProps = {
 export const createThread = async ({
   text,
   author,
-  communityId,
+  communityId = null,
   path,
 }: createThreadProps) => {
   try {
     await connectToDB();
+    let community: (Pick<CommunityDocument, "_id"> & Document) | null = null;
+    if (communityId)
+      community = await Community.findOne({ id: communityId }, { _id: 1 });
 
     const newThread = await Thread.create({
       text,
       author,
-      community: null,
+      community: community?._id,
     });
 
     // Update user model
     await User.findByIdAndUpdate(author, { $push: { threads: newThread._id } });
+
+    if (community)
+      await Community.findByIdAndUpdate(community._id, {
+        $push: { threads: newThread._id },
+      });
 
     revalidatePath(path);
   } catch (error: any) {
@@ -51,12 +61,13 @@ export const fetchThreads = async (
     .skip(skipAmount)
     .limit(pageSize)
     .populate({ path: "author", model: User })
+    .populate({ path: "community", model: Community })
     .populate({
       path: "children",
       populate: {
         path: "author",
         model: Thread,
-        select: "_id name parentId createdAt updatedAt",
+        select: "_id name image",
       },
     });
 
@@ -78,6 +89,11 @@ export const getThreadById = async (
       .populate({
         path: "author",
         model: User,
+        select: "_id id name image",
+      })
+      .populate({
+        path: "community",
+        model: Community,
         select: "_id id name image",
       })
       .populate({
@@ -117,5 +133,75 @@ export const addCommentToThread = async (
     revalidatePath(path);
   } catch (error: any) {
     throw new Error(`Error adding a comment ${error.message}`);
+  }
+};
+
+const fetchAllChildThreads = async (
+  threadId: string
+): Promise<ThreadDocument[]> => {
+  const childThreads = await Thread.find({ parentId: threadId });
+
+  const result: ThreadDocument[] = [];
+  childThreads.forEach(async (child) => {
+    const descendants = await fetchAllChildThreads(child._id.toString());
+    result.push(child, ...descendants);
+  });
+
+  return result;
+};
+
+export const deleteThread = async (id: string, path: string) => {
+  try {
+    await connectToDB();
+
+    // Find the thread to be deleted (the main thread)
+    const mainThread = await Thread.findById(id).populate("author community");
+
+    if (!mainThread) {
+      throw new Error("Thread not found");
+    }
+
+    // Fetch all child threads and their descendants recursively
+    const descendantThreads = await fetchAllChildThreads(id);
+
+    // Get all descendant thread IDs including the main thread ID and child thread IDs
+    const descendantThreadIds = [
+      id,
+      ...descendantThreads.map((thread) => thread._id),
+    ];
+
+    // Extract the authorIds and communityIds to update User and Community models respectively
+    const uniqueAuthorIds = new Set(
+      [
+        ...descendantThreads.map((thread) => thread.author?._id?.toString()), // Use optional chaining to handle possible undefined values
+        mainThread.author?._id?.toString(),
+      ].filter((id) => id !== undefined)
+    );
+
+    const communityIds = [
+      ...descendantThreads.map((thread) => thread.community?._id?.toString()),
+      mainThread.community?._id?.toString(),
+    ].filter((s): s is string => Boolean(s));
+
+    const uniqueCommunityIds = new Set(communityIds);
+
+    // Recursively delete child threads and their descendants
+    await Thread.deleteMany({ _id: { $in: descendantThreadIds } });
+
+    // Update User model
+    await User.updateMany(
+      { _id: { $in: Array.from(uniqueAuthorIds) } },
+      { $pull: { threads: { $in: descendantThreadIds } } }
+    );
+
+    // Update Community model
+    await Community.updateMany(
+      { _id: { $in: Array.from(uniqueCommunityIds) } },
+      { $pull: { threads: { $in: descendantThreadIds } } }
+    );
+
+    revalidatePath(path);
+  } catch (error: any) {
+    throw new Error(`Failed to delete thread: ${error.message}`);
   }
 };

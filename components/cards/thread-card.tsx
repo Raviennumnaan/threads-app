@@ -1,4 +1,5 @@
 import { ThreadDocument } from "@/lib/models/thread.model";
+import { formatDateString } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -91,7 +92,27 @@ export default function ThreadCard({
             </div>
           </div>
         </div>
+        {/* TODO DELETE Thread */}
+        {/* TODO Show comment Logos */}
       </div>
+      {!isComment && thread.community && (
+        <Link
+          href={`/communities/${thread.community.id}`}
+          className="mt-5 flex items-center"
+        >
+          <p className="text-subtle-medium text-gray-1 ">
+            {formatDateString(thread.createdAt)} - {thread.community.name}{" "}
+            Community
+          </p>
+          <Image
+            src={thread.community.image || ""}
+            alt={thread.community.name}
+            width={14}
+            height={14}
+            className="rounded-full ml-1 object-cover"
+          />
+        </Link>
+      )}
     </article>
   );
 }
